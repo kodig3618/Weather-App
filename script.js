@@ -86,3 +86,50 @@ toggleUnitBtn.addEventListener("click", () => {
     isCelsius = !isCelsius;
     updateWeatherUI(currentWeatherData);
 });
+function formatTime(unixTimestamp, timezoneOffset) {
+    const date = new Date((unixTimestamp + timezoneOffset) * 1000);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function updateAdditionalInfo(data) {
+    // Feels like
+    const feelsLikeF = data.main.feels_like;
+    const feelsLike = isCelsius ? Math.round(toCelsius(feelsLikeF)) : Math.round(feelsLikeF);
+    let feelsLikeElem = document.querySelector(".feels-like");
+    if (!feelsLikeElem) {
+        feelsLikeElem = document.createElement("div");
+        feelsLikeElem.className = "feels-like";
+        tempElem.parentNode.insertBefore(feelsLikeElem, tempElem.nextSibling);
+    }
+    feelsLikeElem.textContent = `Feels like: ${feelsLike}°${isCelsius ? "C" : "F"}`;
+
+    // Weather description
+    let descElem = document.querySelector(".weather-desc");
+    if (!descElem) {
+        descElem = document.createElement("div");
+        descElem.className = "weather-desc";
+        weatherIcon.parentNode.insertBefore(descElem, weatherIcon.nextSibling);
+    }
+    descElem.textContent = data.weather[0].description
+        ? data.weather[0].description.charAt(0).toUpperCase() + data.weather[0].description.slice(1)
+        : "";
+
+    // Sunrise/Sunset
+    let sunElem = document.querySelector(".sun-times");
+    if (!sunElem) {
+        sunElem = document.createElement("div");
+        sunElem.className = "sun-times";
+        weatherDiv.appendChild(sunElem);
+    }
+    const tz = data.timezone || 0;
+    const sunrise = formatTime(data.sys.sunrise, tz);
+    const sunset = formatTime(data.sys.sunset, tz);
+    sunElem.textContent = `Sunrise: ${sunrise} | Sunset: ${sunset}`;
+}
+
+// Patch updateWeatherUI to call updateAdditionalInfo
+const origUpdateWeatherUI = updateWeatherUI;
+updateWeatherUI = function(data) {
+    origUpdateWeatherUI(data);
+    updateAdditionalInfo(data);
+};
