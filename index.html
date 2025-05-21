@@ -1,4 +1,3 @@
-<!-- comment -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,84 +5,120 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Weather App</title>
     <link rel="stylesheet" href="styles.css">
-    <script src="script.js"></script>
+    <script defer src="script.js"></script>
 </head>
 <body>
     <div class="card">
         <div class="search">
-            <input type="text" placeholder="Enter city name" 
-            spellcheck="false">
-            <button><img src="images/search.png"></button>
+            <input type="text" placeholder="Enter city name" spellcheck="false" aria-label="City name">
+            <button aria-label="Search"><img src="images/search.png" alt="Search"></button>
         </div>
-        <div class="error">
+        <div class="error" style="display:none;">
             <p>Invalid city name</p>
         </div>
-        <div class="weather">
-            <img src="images/rain.png" class="weather-icon">
+        <div class="loading" style="display:none;">
+            <p>Loading...</p>
+        </div>
+        <div class="weather" style="display:none;">
+            <img src="images/rain.png" class="weather-icon" alt="Weather icon">
             <h1 class="temp">°F</h1>
+            <button class="toggle-unit" aria-label="Toggle temperature unit">Show °C</button>
             <h2 class="city">City Name</h2>
             <div class="details">
                 <div class="col">
-                    <img src="images/humidity.png">
+                    <img src="images/humidity.png" alt="Humidity">
                     <div>
                         <p class="humidity">0%</p>
                         <p>Humidity</p>
                     </div>
                 </div>
                 <div class="col">
-                    <img src="images/wind.png">
+                    <img src="images/wind.png" alt="Wind">
                     <div>
-                        <p class="wind">0 km/h</p>
+                        <p class="wind">0 mph</p>
                         <p>Wind Speed</p>
                     </div>
                 </div>
             </div>
+        </div>
     </div>
     <script>
         const apiKey = "fe8658516f8d1edaccb4878668b0180a";
-        const apiUrl = "https://api.openweathermap.org/data/2.5/weather?units=imperial&q=";
+        const apiUrl = "https://api.openweathermap.org/data/2.5/weather?q=";
 
         const searchBox = document.querySelector(".search input");
         const searchBtn = document.querySelector(".search button");
         const weatherIcon = document.querySelector(".weather-icon");
+        const errorDiv = document.querySelector(".error");
+        const weatherDiv = document.querySelector(".weather");
+        const loadingDiv = document.querySelector(".loading");
+        const tempElem = document.querySelector(".temp");
+        const toggleUnitBtn = document.querySelector(".toggle-unit");
 
-        async function checkWeather(city) {
-            const response = await fetch(apiUrl + city + `&appid=${apiKey}`);
+        let currentWeatherData = null;
+        let isCelsius = false;
 
-        if (response.status == 404) {
-            document.querySelector(".error").style.display = "block";
-            document.querySelector(".weather").style.display = "none";
-        } else {
-            var data = await response.json();
-
-            document.querySelector(".city").innerHTML = data.name;
-            document.querySelector(".temp").innerHTML = Math.round(data.main.temp) + "°F";
-            document.querySelector(".humidity").innerHTML = data.main.humidity + "%";
-            document.querySelector(".wind").innerHTML = data.wind.speed + " mph";
-
-            if (data.weather[0].main == "Clouds"){
-                weatherIcon.src = "images/clouds.png";
-            } else if (data.weather[0].main == "Clear"){
-                weatherIcon.src = "images/clear.png";
-            } else if (data.weather[0].main == "Rain"){
-                weatherIcon.src = "images/rain.png";
-            } else if (data.weather[0].main == "Drizzle"){
-                weatherIcon.src = "images/drizzle.png";
-            } else if (data.weather[0].main == "Mist"){
-                weatherIcon.src = "images/mist.png";
-            } 
-
-        document.querySelector(".weather").style.display = "block";
-        document.querySelector(".error").style.display = "none";
- }
+        function showLoading(show) {
+            loadingDiv.style.display = show ? "block" : "none";
         }
 
-            
+        function showError(show) {
+            errorDiv.style.display = show ? "block" : "none";
+        }
 
-    searchBtn.addEventListener("click", ()=>{
-        checkWeather(searchBox.value);
-    })
+        function showWeather(show) {
+            weatherDiv.style.display = show ? "block" : "none";
+        }
+
+        function updateWeatherUI(data) {
+            document.querySelector(".city").textContent = data.name;
+            tempElem.textContent = isCelsius
+                ? `${Math.round((data.main.temp - 32) * 5/9)}°C`
+                : `${Math.round(data.main.temp)}°F`;
+            document.querySelector(".humidity").textContent = data.main.humidity + "%";
+            document.querySelector(".wind").textContent = Math.round(data.wind.speed) + " mph";
+        
+            // Use OpenWeatherMap icon code for accurate weather icons
+            const iconCode = data.weather[0].icon;
+            weatherIcon.src = `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
+            weatherIcon.alt = data.weather[0].description || data.weather[0].main;
+        
+            toggleUnitBtn.textContent = isCelsius ? "Show °F" : "Show °C";
+        }
+
+        async function checkWeather(city) {
+            if (!city.trim()) {
+                showError(true);
+                showWeather(false);
+                return;
+            }
+            showLoading(true);
+            showError(false);
+            showWeather(false);
+            try {
+                const response = await fetch(`${apiUrl}${encodeURIComponent(city)}&units=imperial&appid=${apiKey}`);
+                if (!response.ok) throw new Error();
+                const data = await response.json();
+                currentWeatherData = data;
+                updateWeatherUI(data);
+                showWeather(true);
+            } catch {
+                showError(true);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        searchBtn.addEventListener("click", () => checkWeather(searchBox.value));
+        searchBox.addEventListener("keydown", e => {
+            if (e.key === "Enter") checkWeather(searchBox.value);
+        });
+
+        toggleUnitBtn.addEventListener("click", () => {
+            if (!currentWeatherData) return;
+            isCelsius = !isCelsius;
+            updateWeatherUI(currentWeatherData);
+        });
     </script>
 </body>
-
 </html>
