@@ -1,5 +1,3 @@
-:
-
 🌦️ Weather App
 A sleek and responsive web-based Weather App that fetches real-time weather data using the OpenWeatherMap API. Users can search for any city worldwide and view current weather conditions including temperature, humidity, wind speed, sunrise/sunset times, and more—with support for toggling between Fahrenheit and Celsius.
 
@@ -32,4 +30,3 @@ CSS3
 JavaScript (ES6+)
 
 OpenWeatherMap API
-
